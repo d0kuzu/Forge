@@ -1,0 +1,60 @@
+name: Smart Contracts CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  test-and-gas:
+    name: Build, Test & Gas Report
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Show Foundry version
+        run: forge --version
+
+      - name: Build contracts
+        run: forge build --sizes
+
+      - name: Run tests & generate gas report
+        run: forge test --gas-report
+
+  slither-analysis:
+    name: Slither Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    needs: test-and-gas
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Foundry (Needed for Slither compilation via forge)
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run Slither
+        uses: crytic/slither-action@v0.4.0
+        with:
+          target: './'
+          fail-on: none # Failures don't stop the pipeline; allows reviewing the report.
+          slither-args: '--filter-paths "test|lib" --exclude-dependencies'

@@ -1,0 +1,28 @@
+# Compiler outputs
+out/
+cache/
+broadcast/
+
+# Foundry specific
+test-results/
+/foundry.lock
+.coverage/
+coverage.json
+lcov.info
+
+# Node/Hardhat remnants (if any)
+node_modules/
+dist/
+build/
+.env
+
+# Dependencies
+lib/
+foundry/
+foundry.zip
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+.DS_Store

@@ -17,7 +17,6 @@ build/
 .env
 
 # Dependencies
-lib/
 foundry/
 foundry.zip
 

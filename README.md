@@ -1,66 +1,38 @@
-## Foundry
+# Decentralized Forge 🔨
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A comprehensive GameFi ecosystem built with Solidity and Foundry.
 
-Foundry consists of:
+## Setup & Installation
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Чтобы развернуть этот проект на новом компьютере, выполните следующие шаги в терминале:
 
-## Documentation
+1. **Клонируйте репозиторий вместе со всеми зависимостями (submodules):**
+   ```bash
+   git clone --recurse-submodules https://github.com/d0kuzu/Forge.git
+   cd Forge
+   ```
+   *(Если вы уже склонировали репозиторий без флага `--recurse-submodules`, подтяните библиотеки командой: `git submodule update --init --recursive`)*
 
-https://book.getfoundry.sh/
+2. **Установите Foundry (если еще не установлен):**
+   ```bash
+   curl -L https://foundry.paradigm.xyz | bash
+   foundryup
+   ```
 
-## Usage
+3. **Скомпилируйте проект:**
+   ```bash
+   forge build
+   ```
 
-### Build
+4. **Запустите тесты:**
+   ```bash
+   forge test
+   ```
 
-```shell
-$ forge build
-```
+## Architecture
 
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+* **ForgeAMM**: Custom Automated Market Maker in highly optimized Yul assembly.
+* **Tokens**: ForgeCoin (ERC20 Governance) and ForgeItems (ERC1155 Crafting).
+* **GachaLootbox**: Chainlink VRF integrated random item drops.
+* **Vaults**: ERC4626 staking and P2P NFT Rental Vault.
+* **Guilds**: CREATE2 deterministic deterministic deployment of Guild contracts.

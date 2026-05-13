@@ -25,7 +25,7 @@ contract GachaLootboxTest is Test {
 
     function setUp() public {
         coin = new ForgeCoin(admin, 1000 * 10**18);
-        items = new ForgeItems(address(coin), admin, admin, "");
+        items = new ForgeItems(address(coin), admin, admin);
         vrfMock = new MockVRFCoordinator();
 
         // Deploy Gacha implementation and Proxy

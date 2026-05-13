@@ -87,13 +87,11 @@ contract ForgeItems is ERC1155, ERC1155Burnable, ERC1155Supply, AccessControl {
     /// @param _forgeCoin        Address of the ForgeCoin ERC20 contract
     /// @param _initialAdmin     Address receiving admin roles (later → DAO Timelock)
     /// @param _craftFeeRecipient Address receiving ForgeCoin crafting fees
-    /// @param uri_              Base URI for token metadata
     constructor(
         address _forgeCoin,
         address _initialAdmin,
-        address _craftFeeRecipient,
-        string memory uri_
-    ) ERC1155(uri_) {
+        address _craftFeeRecipient
+    ) ERC1155("") {
         if (_forgeCoin == address(0) || _initialAdmin == address(0)) revert ZeroAddress();
 
         forgeCoin = IERC20(_forgeCoin);

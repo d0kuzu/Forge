@@ -21,14 +21,14 @@ contract VaultsTest is Test {
 
     function setUp() public {
         coin = new ForgeCoin(admin, 1_000_000 * 10**18);
-        items = new ForgeItems(address(coin), admin, admin, "");
+        items = new ForgeItems(address(coin), admin, admin);
 
         // 1. Setup Staking Vault (5% performance fee)
         stakingVault = new ForgeVault(coin, admin, feeRecipient, 500);
         stakingVault.grantRole(stakingVault.DISTRIBUTOR_ROLE(), admin);
 
         // 2. Setup Rental Vault
-        rentalVault = new NFTRentalVault(address(coin), address(items));
+        rentalVault = new NFTRentalVault(address(coin), address(items), admin);
 
         // Fund users
         coin.transfer(alice, 10_000 * 10**18);

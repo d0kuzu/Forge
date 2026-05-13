@@ -15,6 +15,7 @@ import {VRFConsumerBaseV2Plus} from "../chainlink/VRFConsumerBaseV2Plus.sol";
 import {IVRFCoordinatorV2Plus} from "../chainlink/IVRFCoordinatorV2Plus.sol";
 import {VRFV2PlusClient} from "../chainlink/VRFV2PlusClient.sol";
 import {DataTypes} from "../libraries/DataTypes.sol";
+import {IForgeVault} from "../interfaces/IForgeVault.sol";
 
 /// @notice Interface for ForgeItems minting (avoids circular dependency)
 interface IForgeItemsMinter {
@@ -88,8 +89,11 @@ contract GachaLootbox is
     /// @notice Dust amount awarded when Dust is the drop result
     uint256 public dustDropAmount;
 
+    /// @notice Vault for sweeping revenue
+    IForgeVault public forgeVault;
+
     /// @dev Gap for future storage variables in upgrades
-    uint256[40] private __gap;
+    uint256[39] private __gap;
 
     // ============================================================
     //                      CUSTOM ERRORS
@@ -264,6 +268,12 @@ contract GachaLootbox is
         forgeCoin.safeTransferFrom(msg.sender, address(this), price);
         totalRevenue += price;
 
+        // Immediately route revenue to ForgeVault if configured
+        if (address(forgeVault) != address(0)) {
+            forgeCoin.approve(address(forgeVault), price);
+            forgeVault.distributeRewards(price);
+        }
+
         // Request VRF random number
         requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
@@ -356,6 +366,18 @@ contract GachaLootbox is
         emit RevenueWithdrawn(to, amount);
     }
 
+    /// @notice Sweep all accumulated ForgeCoin revenue directly to the Vault
+    /// @dev Only needed if forgeVault was set after some revenue had already accumulated
+    function sweepRevenue() external nonReentrant {
+        if (address(forgeVault) == address(0)) revert ZeroAddress();
+        uint256 balance = forgeCoin.balanceOf(address(this));
+        if (balance == 0) revert InsufficientRevenue(1, 0);
+
+        forgeCoin.approve(address(forgeVault), balance);
+        forgeVault.distributeRewards(balance);
+        emit RevenueWithdrawn(address(forgeVault), balance);
+    }
+
     // ============================================================
     //                    ADMIN FUNCTIONS
     // ============================================================
@@ -386,6 +408,12 @@ contract GachaLootbox is
     function setVRFCoordinator(address coordinator) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (coordinator == address(0)) revert ZeroAddress();
         _setVRFCoordinator(coordinator);
+    }
+
+    /// @notice Set the ForgeVault address for sweeping revenue
+    function setForgeVault(address _vault) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_vault == address(0)) revert ZeroAddress();
+        forgeVault = IForgeVault(_vault);
     }
 
     /// @notice Pause the contract (emergency)

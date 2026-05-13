@@ -21,7 +21,8 @@ contract ForgeItemsTest is Test {
 
     function setUp() public {
         coin = new ForgeCoin(admin, 1_000_000 * 10**18);
-        items = new ForgeItems(address(coin), admin, treasury, "https://api.forge.com/items/");
+        items = new ForgeItems(address(coin), admin, treasury);
+        items.setURI("https://api.forge.com/items/");
 
         coin.transfer(alice, 1000 * 10**18);
         items.mintDust(alice, 500);

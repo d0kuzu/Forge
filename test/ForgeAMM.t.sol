@@ -24,7 +24,8 @@ contract ForgeAMMTest is Test {
     function setUp() public {
         // 1. Deploy tokens
         coin = new ForgeCoin(admin, 0); // initialAdmin, initialSupply
-        items = new ForgeItems(address(coin), admin, admin, "https://api.forge.com/items/");
+        items = new ForgeItems(address(coin), admin, admin);
+        items.setURI("https://api.forge.com/items/");
 
         // 2. Grant minter roles to this test contract
         coin.grantRole(coin.MINTER_ROLE(), address(this));

@@ -7,8 +7,10 @@ import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {DataTypes} from "../libraries/DataTypes.sol";
+import {IForgeVault} from "../interfaces/IForgeVault.sol";
 
 /// @title NFTRentalVault — ERC1155 Item Rental Marketplace
 /// @notice Owners deposit ForgeItems and set daily ForgeCoin rental rates.
@@ -19,7 +21,7 @@ import {DataTypes} from "../libraries/DataTypes.sol";
 ///      - Renting: renter pays ForgeCoin, gets "virtual access" for duration
 ///      - Return: item goes back to owner after expiry or early return
 ///      - Liquidation: anyone can trigger return of expired rentals
-contract NFTRentalVault is ReentrancyGuard, IERC1155Receiver {
+contract NFTRentalVault is ReentrancyGuard, IERC1155Receiver, Ownable {
     using SafeERC20 for IERC20;
 
     // ============================================================
@@ -58,6 +60,12 @@ contract NFTRentalVault is ReentrancyGuard, IERC1155Receiver {
     uint256 public constant PLATFORM_FEE_BPS = 250;
     uint256 public constant BPS_DENOMINATOR = 10_000;
 
+    /// @notice Vault for sweeping revenue
+    IForgeVault public forgeVault;
+
+    /// @notice Accumulated platform fees ready to sweep
+    uint256 public accumulatedPlatformFees;
+
     // ============================================================
     //                      CUSTOM ERRORS
     // ============================================================
@@ -85,6 +93,7 @@ contract NFTRentalVault is ReentrancyGuard, IERC1155Receiver {
     event ItemReturned(uint256 indexed rentalId);
     event RentClaimed(address indexed owner, uint256 amount);
     event RentalLiquidated(uint256 indexed rentalId);
+    event PlatformFeesSwept(uint256 amount);
 
     // ============================================================
     //                      CONSTRUCTOR
@@ -92,7 +101,8 @@ contract NFTRentalVault is ReentrancyGuard, IERC1155Receiver {
 
     /// @param _forgeCoin    ForgeCoin ERC20 address
     /// @param _forgeItems   ForgeItems ERC1155 address
-    constructor(address _forgeCoin, address _forgeItems) {
+    /// @param initialOwner  Owner for configuring fees
+    constructor(address _forgeCoin, address _forgeItems, address initialOwner) Ownable(initialOwner) {
         if (_forgeCoin == address(0) || _forgeItems == address(0)) revert ZeroAddress();
         forgeCoin = IERC20(_forgeCoin);
         forgeItems = IERC1155(_forgeItems);
@@ -207,6 +217,14 @@ contract NFTRentalVault is ReentrancyGuard, IERC1155Receiver {
         // Accrue rent to owner (claimable later)
         unclaimedRent[listing.owner] += ownerPayment;
 
+        // Immediately route platform fee to ForgeVault if configured, else accumulate
+        if (address(forgeVault) != address(0) && platformFee > 0) {
+            forgeCoin.approve(address(forgeVault), platformFee);
+            forgeVault.distributeRewards(platformFee);
+        } else {
+            accumulatedPlatformFees += platformFee;
+        }
+
         rentalId = _nextRentalId++;
 
         _rentals[rentalId] = DataTypes.RentalAgreement({
@@ -256,6 +274,30 @@ contract NFTRentalVault is ReentrancyGuard, IERC1155Receiver {
         forgeCoin.safeTransfer(msg.sender, amount);
 
         emit RentClaimed(msg.sender, amount);
+    }
+
+    // ============================================================
+    //                      ADMIN FUNCTIONS
+    // ============================================================
+
+    /// @notice Set the ForgeVault address for sweeping revenue
+    function setForgeVault(address _vault) external onlyOwner {
+        if (_vault == address(0)) revert ZeroAddress();
+        forgeVault = IForgeVault(_vault);
+    }
+
+    /// @notice Sweep all accumulated platform fees directly to the Vault
+    /// @dev Requires forgeVault to be set and this contract to have DISTRIBUTOR_ROLE on it
+    function sweepPlatformFees() external nonReentrant {
+        if (address(forgeVault) == address(0)) revert ZeroAddress();
+        uint256 amount = accumulatedPlatformFees;
+        if (amount == 0) revert NothingToClaim();
+
+        accumulatedPlatformFees = 0;
+        forgeCoin.approve(address(forgeVault), amount);
+        forgeVault.distributeRewards(amount);
+
+        emit PlatformFeesSwept(amount);
     }
 
     // ============================================================
